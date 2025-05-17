@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Inventory Comparison Results</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.2.3/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            padding: 20px;
+            background-color: #f8f9fa;
+        }
+        .container-fluid {
+            max-width: 1200px;
+            background-color: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 0 15px rgba(0,0,0,0.1);
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .table {
+            font-size: 14px;
+        }
+        .table th {
+            position: sticky;
+            top: 0;
+            background-color: #f8f9fa;
+            z-index: 10;
+        }
+        .table-wrapper {
+            overflow-x: auto;
+            max-height: 500px;
+            margin-bottom: 20px;
+        }
+        .legend {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #f1f8ff;
+            border-radius: 5px;
+        }
+        .color-box {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            margin-right: 5px;
+            vertical-align: middle;
+        }
+        .match {
+            background-color: #ccffcc;
+        }
+        .mismatch {
+            background-color: #ffcccc;
+        }
+        .summary {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 5px;
+        }
+        .summary.match {
+            background-color: #d4edda;
+            border: 1px solid #c3e6cb;
+        }
+        .summary.mismatch {
+            background-color: #f8d7da;
+            border: 1px solid #f5c6cb;
+        }
+        .btn-back {
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid">
+        <div class="header">
+            <h1>Inventory Comparison Results</h1>
+            {% if single %}
+            <p>File: <strong>{{ file1 }}</strong></p>
+            {% else %}
+            <p>Comparing: <strong>{{ file1 }}</strong> with <strong>{{ file2 }}</strong></p>
+            {% endif %}
+        </div>
+
+        {% if discrepancies %}
+        <div class="summary mismatch">
+            <h4><i class="bi bi-exclamation-triangle"></i> Discrepancies Found</h4>
+            {% if single %}
+            <p>{{ count }} mismatches detected. Review highlighted rows below.</p>
+            {% else %}
+            <p>Differences detected between files. Review highlighted cells below.</p>
+            {% endif %}
+        </div>
+        {% else %}
+        <div class="summary match">
+            <h4><i class="bi bi-check-circle"></i> No Discrepancies Found</h4>
+            <p>All compared values match perfectly.</p>
+        </div>
+        {% endif %}
+
+        <div class="table-wrapper">
+            {{ table | safe }}
+        </div>
+
+        <div class="legend">
+            <h5>Legend:</h5>
+            <p><span class="color-box match"></span> Matching values</p>
+            <p><span class="color-box mismatch"></span> Mismatched values</p>
+            <p><strong>*_match</strong> columns indicate whether values match between files</p>
+            <p><strong>*_diff</strong> columns show the difference (New - Old) between values</p>
+        </div>
+
+        <a href="/" class="btn btn-primary btn-back">&larr; Compare Another File{% if not single %} Set{% endif %}</a>
+    </div>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.2.3/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Inventory Comparison Tool</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.2.3/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            padding: 20px;
+            background-color: #f8f9fa;
+        }
+        .container {
+            max-width: 800px;
+            background-color: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 0 15px rgba(0,0,0,0.1);
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .upload-form {
+            margin-top: 20px;
+        }
+        .file-input {
+            margin-bottom: 15px;
+        }
+        .alert {
+            margin-top: 20px;
+        }
+        .btn-primary {
+            margin-top: 10px;
+            width: 100%;
+        }
+        .instructions {
+            margin-top: 30px;
+            padding: 15px;
+            background-color: #f1f8ff;
+            border-radius: 5px;
+        }
+        .mode-selector {
+            margin-bottom: 25px;
+            padding: 15px;
+            background-color: #fff8e1;
+            border-radius: 5px;
+            border: 1px solid #ffe0b2;
+        }
+        .form-check {
+            margin-bottom: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Inventory Comparison Tool</h1>
+            <p class="text-muted">Compare inventory data to identify discrepancies</p>
+        </div>
+
+        {% with messages = get_flashed_messages() %}
+        {% if messages %}
+        <div class="alert alert-danger">
+            {% for message in messages %}
+            {{ message }}
+            {% endfor %}
+        </div>
+        {% endif %}
+        {% endwith %}
+
+        <div class="mode-selector">
+            <h5>Select Comparison Mode:</h5>
+            <div class="form-check">
+                <input class="form-check-input" type="radio" name="comparisonMode" id="singleFileMode" value="single" checked>
+                <label class="form-check-label" for="singleFileMode">
+                    <strong>Single File Analysis</strong> - Check if inventory calculations are correct within one file
+                </label>
+            </div>
+            <div class="form-check">
+                <input class="form-check-input" type="radio" name="comparisonMode" id="twoFileMode" value="two">
+                <label class="form-check-label" for="twoFileMode">
+                    <strong>Two-File Comparison</strong> - Compare inventory values between two different files
+                </label>
+            </div>
+        </div>
+
+        <form action="/compare" method="post" enctype="multipart/form-data" class="upload-form" id="uploadForm">
+            <input type="hidden" name="single_file_mode" value="true" id="modeInput">
+            
+            <div class="mb-3 file-input">
+                <label for="file1" class="form-label" id="file1Label">Inventory File:</label>
+                <input type="file" class="form-control" id="file1" name="file1" accept=".xls,.xlsx,.csv" required>
+                <div class="form-text" id="file1Help">Upload your inventory Excel or CSV file</div>
+            </div>
+            
+            <div class="mb-3 file-input" id="file2Container" style="display: none;">
+                <label for="file2" class="form-label">Current Inventory File:</label>
+                <input type="file" class="form-control" id="file2" name="file2" accept=".xls,.xlsx,.csv">
+                <div class="form-text">Upload the newer inventory file to compare against</div>
+            </div>
+            
+            <button type="submit" class="btn btn-primary" id="submitButton">Analyze Inventory</button>
+        </form>
+        
+        <div class="instructions">
+            <h5>Instructions:</h5>
+            <div id="singleFileInstructions">
+                <p>This mode analyzes a single inventory file to check if the calculations are consistent.</p>
+                <ol>
+                    <li>Upload a CSV or Excel file containing inventory data</li>
+                    <li>The file should contain these columns:
+                        <ul>
+                            <li><strong>Item Details</strong> (product identifier)</li>
+                            <li><strong>Op. Qty.</strong> (opening inventory)</li>
+                            <li><strong>Qty. In</strong> (items received)</li>
+                            <li><strong>Qty. Out</strong> (items sold/used)</li>
+                            <li><strong>Cl. Qty.</strong> (closing inventory)</li>
+                        </ul>
+                    </li>
+                    <li>The tool will check if: Opening Qty + Qty In - Qty Out = Closing Qty</li>
+                    <li>Any discrepancies will be highlighted in red</li>
+                </ol>
+            </div>
+            <div id="twoFileInstructions" style="display: none;">
+                <p>This mode compares inventory data between two different files.</p>
+                <ol>
+                    <li>Upload two Excel or CSV files containing inventory data</li>
+                    <li>Each file should contain columns for:
+                        <ul>
+                            <li><strong>Item</strong> (or similar identifier column)</li>
+                            <li><strong>OpeningQty</strong> (beginning inventory)</li>
+                            <li><strong>QtyIn</strong> (items received)</li>
+                            <li><strong>QtyOut</strong> (items sold/used)</li>
+                            <li><strong>ClosingQty</strong> (ending inventory)</li>
+                        </ul>
+                    </li>
+                    <li>The tool will highlight any discrepancies between the files</li>
+                </ol>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.2.3/js/bootstrap.bundle.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const singleFileMode = document.getElementById('singleFileMode');
+            const twoFileMode = document.getElementById('twoFileMode');
+            const file2Container = document.getElementById('file2Container');
+            const file2Input = document.getElementById('file2');
+            const singleFileInstructions = document.getElementById('singleFileInstructions');
+            const twoFileInstructions = document.getElementById('twoFileInstructions');
+            const modeInput = document.getElementById('modeInput');
+            const submitButton = document.getElementById('submitButton');
+            const file1Label = document.getElementById('file1Label');
+            const file1Help = document.getElementById('file1Help');
+            
+            function updateMode() {
+                if (singleFileMode.checked) {
+                    file2Container.style.display = 'none';
+                    file2Input.required = false;
+                    singleFileInstructions.style.display = 'block';
+                    twoFileInstructions.style.display = 'none';
+                    modeInput.value = 'true';
+                    submitButton.textContent = 'Analyze Inventory';
+                    file1Label.textContent = 'Inventory File:';
+                    file1Help.textContent = 'Upload your inventory Excel or CSV file';
+                } else {
+                    file2Container.style.display = 'block';
+                    file2Input.required = true;
+                    singleFileInstructions.style.display = 'none';
+                    twoFileInstructions.style.display = 'block';
+                    modeInput.value = '';
+                    submitButton.textContent = 'Compare Files';
+                    file1Label.textContent = 'Previous Inventory File:';
+                    file1Help.textContent = 'Upload the older inventory Excel or CSV file';
+                }
+            }
+            
+            singleFileMode.addEventListener('change', updateMode);
+            twoFileMode.addEventListener('change', updateMode);
+            
+            // Initialize form state
+            updateMode();
+        });
+    </script>
+</body>
+</html>
